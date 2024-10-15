@@ -65,8 +65,13 @@ button:hover {
 canvas {
     margin: 20px auto;
     display: block;
-    max-width: 400px;
+    max-width: 400px; 
 }
+
+#covidTrendChart {
+    max-width: 600px; 
+}
+
 
 .error-message {
     color: red;
@@ -100,4 +105,10 @@ footer a:hover {
 
 footer strong {
     color: #ffcd56; 
+}
+
+.chart-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: 10px;
 }

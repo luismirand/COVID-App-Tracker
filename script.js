@@ -58,22 +58,26 @@ document.getElementById('fetch-data').addEventListener('click', function() {
     const stateAbbr = document.getElementById('states').value;
 
     if (!stateAbbr) {
-        document.getElementById('stats-content').innerHTML = `<p class="error-message">Por favor, Selecciona un estado</p>`;
+        alert("Por favor, selecciona un estado.");
         return;
     }
 
-    const apiUrl = `https://api.covidtracking.com/v1/states/${stateAbbr}/current.json`;
+    const apiUrlCurrent = `https://api.covidtracking.com/v1/states/${stateAbbr}/current.json`;
+    const apiUrlHistorical = `https://api.covidtracking.com/v1/states/${stateAbbr}/daily.json`;
 
-    fetch(apiUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al obtener los datos');
-            }
-            return response.json();
-        })
+    // Obtener datos actuales
+    fetch(apiUrlCurrent)
+        .then(response => response.json())
         .then(data => {
             displayStats(data, stateAbbr);
-            createChart(data);
+            createChart(data); // Gráfico actual
+        });
+
+    // Obtener datos históricos
+    fetch(apiUrlHistorical)
+        .then(response => response.json())
+        .then(data => {
+            createTrendChart(data); // Gráfico de tendencia
         })
         .catch(error => {
             document.getElementById('stats-content').innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
@@ -86,10 +90,10 @@ function displayStats(data, stateAbbr) {
     const stateName = stateNames[stateAbbr]; 
     const statsContent = `
         <h2>Datos de COVID-19 para ${stateName}</h2>
-        <p>Casos confirmados: <strong>${formatNumber(data.positive)}</strong></p>
-        <p>Hospitalizaciones: <strong>${formatNumber(data.hospitalizedCurrently)}</strong></p>
-        <p>Recuperaciones: <strong>${data.recovered ? formatNumber(data.recovered) : 'N/A'}</strong></p>
-        <p>Muertes: <strong>${formatNumber(data.death)}</strong></p>
+        <p>Casos confirmados: <br> <strong>${formatNumber(data.positive)}</strong></p>
+        <p>Hospitalizaciones: <br> <strong>${formatNumber(data.hospitalizedCurrently)}</strong></p>
+        <p>Recuperaciones: <br> <strong>${data.recovered ? formatNumber(data.recovered) : 'N/A'}</strong></p>
+        <p>Muertes: <br> <strong>${formatNumber(data.death)}</strong></p>
     `;
     document.getElementById('stats-content').innerHTML = statsContent;
 }
@@ -136,5 +140,65 @@ function createChart(data) {
         type: 'pie', 
         data: chartData,
         options: chartOptions
+    });
+}
+
+
+let covidTrendChartInstance;
+
+function createTrendChart(data) {
+    const ctx = document.getElementById('covidTrendChart').getContext('2d');
+
+
+    const dates = data.slice(0, 14).map(item => item.date).reverse(); 
+    const positiveCases = data.slice(0, 14).map(item => item.positive).reverse();
+
+
+    const formattedDates = dates.map(date => {
+        const year = String(date).slice(0, 4);
+        const month = String(date).slice(4, 6);
+        const day = String(date).slice(6, 8);
+        return `${month}/${day}/${year}`;
+    });
+
+
+    if (covidTrendChartInstance) {
+        covidTrendChartInstance.destroy();
+    }
+
+
+    covidTrendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: formattedDates,
+            datasets: [{
+                label: 'Casos Confirmados en los Últimos 14 Días',
+                data: positiveCases,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.2
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Fecha'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatNumber(value);
+                        }
+                    }
+                }
+            }
+        }
     });
 }
